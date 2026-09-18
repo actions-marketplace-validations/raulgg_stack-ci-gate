@@ -82,7 +82,7 @@ A 1-PR stack is both lowest and top. `should-run` is true.
 |---|---|
 | Not a `pull_request` / `pull_request_target` event (`workflow_dispatch`, `merge_group`, `push`) | `true` |
 | Error / invalid *runtime* state / API failure | `true` (fail open) |
-| Invalid *config* (`bottom-n` not a non-negative integer, `run-top` not a boolean) | step fails (exit 1) |
+| Invalid *config* (`bottom-n` not a non-negative integer, `run-top` not a boolean) | `true` (fail open) |
 | After event + API fallback, `stack` is still null | `true` (standalone) |
 | Lowest unmerged | `true` |
 | Remaining depth `<= bottom-n` | `true` |
@@ -110,7 +110,7 @@ Also document:
 ```yaml
 on:
   pull_request:
-    types: [opened, synchronize, reopened, stacked]
+    types: [opened, synchronize, reopened, edited, stacked]
   merge_group:
 ```
 
@@ -167,7 +167,7 @@ Dropped from the draft: `skip` (replaced by affirmative `should-run`), `run-full
 ```yaml
 on:
   pull_request:
-    types: [opened, synchronize, reopened, stacked]
+    types: [opened, synchronize, reopened, edited, stacked]
   merge_group:
 
 permissions:
@@ -217,19 +217,22 @@ Why not the draft’s composite + bash:
 Structure:
 
 ```
-src/gate.mjs          # CLI entry: read env, write outputs
-src/decide.mjs        # pure decision table, unit-tested
-src/github.mjs        # REST: get PR, get stack, retry
+src/gate.mjs          # parse INPUT_* → resolveContext → decide → GITHUB_OUTPUT
+src/decide.mjs        # one should-run table
+src/github.mjs        # opened retry + optional GET /stacks when bottom-n > 1
 tests/decide.test.mjs
-tests/fixtures/*.json
+tests/github.test.mjs
+tests/gate.test.mjs
 ```
 
 Fail-open rules:
 
 - Any exception → `should-run=true`, log warning, do not fail the step.
-- Invalid `bottom-n` / `run-top` → fail the step (config error).
+- Invalid `bottom-n` / `run-top` → `should-run=true` (fail open; log `::error::`).
 - `workflow_dispatch` / `merge_group` / `push` → `should-run=true`.
 - Missing stack after fallback → `should-run=true`.
+- Missing `stack.base.ref` or PR base ref → `should-run=true`.
+- REST calls send `X-GitHub-Api-Version: 2026-03-10` and abort after 15s.
 - Never `gh run cancel` / Actions cancel API.
 
 Permissions in README: `pull-requests: read` (and `contents: read` if the workflow already checks out). Default `GITHUB_TOKEN` is enough.
@@ -258,7 +261,7 @@ inputs:
     required: false
     default: ${{ github.token }}
   pr-number:
-    description: Override pull request number
+    description: Override pull request number on pull_request events. Loads stack from the API.
     required: false
     default: ''
 
@@ -313,7 +316,7 @@ CI workflow:
 ```yaml
 on:
   pull_request:
-    types: [opened, synchronize, reopened, stacked]
+    types: [opened, synchronize, reopened, edited, stacked]
   push:
     branches: [main]
 jobs:

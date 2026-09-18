@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  GITHUB_API_VERSION,
   remainingDepthFromStackPulls,
   resolvePull,
 } from '../src/github.mjs'
@@ -188,6 +189,43 @@ test('pr_number override ignores the triggering event stack', async () => {
   assert.equal(resolved.prBaseRef, 'feat/auth')
   assert.equal(resolved.stack.position, 2)
   assert.equal(resolved.source, 'api')
+})
+
+test('GET sends API version and abort signal', async () => {
+  let init
+  await resolvePull({
+    eventAction: 'synchronize',
+    eventStack: null,
+    eventPrNumber: 1,
+    eventPrBaseRef: 'main',
+    repo: 'octo/hello',
+    token: 't',
+    fetchImpl: async (_url, options) => {
+      init = options
+      return jsonResponse({ number: 1, base: { ref: 'main' }, stack: null })
+    },
+  })
+  assert.equal(init.headers['X-GitHub-Api-Version'], GITHUB_API_VERSION)
+  assert.ok(init.signal)
+})
+
+test('fetch abort becomes a thrown error', async () => {
+  await assert.rejects(
+    () =>
+      resolvePull({
+        eventAction: 'synchronize',
+        eventStack: null,
+        eventPrNumber: 1,
+        eventPrBaseRef: 'main',
+        repo: 'octo/hello',
+        token: 't',
+        timeoutMs: 5,
+        fetchImpl: async (_url, { signal }) =>
+          new Promise((_, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason))
+          }),
+      }),
+  )
 })
 
 test('API failure propagates so the gate can fail open', async () => {

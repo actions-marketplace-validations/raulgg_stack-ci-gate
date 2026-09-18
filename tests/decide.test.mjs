@@ -3,7 +3,6 @@ import { test } from 'node:test'
 import {
   ConfigError,
   decide,
-  needsUnmergedDepth,
   parseBottomN,
   parseRunTop,
 } from '../src/decide.mjs'
@@ -188,44 +187,24 @@ test('invalid stack metadata fail-opens', () => {
   assert.match(result.reason, /invalid stack metadata/)
 })
 
-test('needsUnmergedDepth is true only when bottom_n>1 and this is not already a run', () => {
-  const middle = stackOf({ position: 2, size: 4 })
-  assert.equal(
-    needsUnmergedDepth({
-      stack: middle,
-      prBaseRef: 'feat/auth',
-      bottomN: 2,
-      runTop: true,
-    }),
-    true,
-  )
-  assert.equal(
-    needsUnmergedDepth({
-      stack: middle,
-      prBaseRef: 'feat/auth',
-      bottomN: 1,
-      runTop: true,
-    }),
-    false,
-  )
-  assert.equal(
-    needsUnmergedDepth({
-      stack: stackOf({ position: 1, size: 4 }),
-      prBaseRef: 'main',
-      bottomN: 2,
-      runTop: true,
-    }),
-    false,
-  )
-  assert.equal(
-    needsUnmergedDepth({
-      stack: stackOf({ position: 4, size: 4 }),
-      prBaseRef: 'feat/top',
-      bottomN: 2,
-      runTop: true,
-    }),
-    false,
-  )
+test('stack without base.ref fail-opens instead of skipping the bottom', () => {
+  const result = decide({
+    ...defaults,
+    stack: { number: 50, position: 1, size: 3 },
+    prBaseRef: 'main',
+  })
+  assert.equal(result.should_run, true)
+  assert.match(result.reason, /invalid stack metadata/)
+})
+
+test('PR stack with empty prBaseRef fail-opens', () => {
+  const result = decide({
+    ...defaults,
+    stack: stackOf({ position: 1, size: 3 }),
+    prBaseRef: '',
+  })
+  assert.equal(result.should_run, true)
+  assert.match(result.reason, /invalid stack metadata/)
 })
 
 test('parseBottomN accepts integers and empty default', () => {

@@ -19,7 +19,7 @@ inputs:
     required: false
     default: ${{ github.token }}
   pr-number:
-    description: Override pull request number
+    description: Override pull request number on pull_request events. Loads stack from the API.
     required: false
     default: ''
 

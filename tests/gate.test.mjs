@@ -3,7 +3,6 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
-import { ConfigError } from '../src/decide.mjs'
 import { run } from '../src/gate.mjs'
 
 function jsonResponse(body, status = 200) {
@@ -54,16 +53,26 @@ const silent = {
   error() {},
 }
 
-test('invalid bottom-n exits 1 and writes no should-run output', async () => {
+test('invalid bottom-n fail-opens should-run=true', async () => {
   const dir = tempDir()
+  const errors = []
   const env = baseEnv(dir, {
     'INPUT_BOTTOM-N': 'nope',
     GITHUB_EVENT_NAME: 'pull_request',
   })
-  const { exitCode, error } = await run(env, { log: silent })
-  assert.equal(exitCode, 1)
-  assert.equal(error instanceof ConfigError, true)
-  assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false)
+  const { exitCode, result } = await run(env, {
+    log: {
+      log() {},
+      warn() {},
+      error(msg) {
+        errors.push(msg)
+      },
+    },
+  })
+  assert.equal(exitCode, 0)
+  assert.equal(result.should_run, true)
+  assert.equal(parseOutputs(env.GITHUB_OUTPUT)['should-run'], 'true')
+  assert.ok(errors.some((msg) => String(msg).includes('bottom-n')))
 })
 
 test('merge_group writes should-run=true without fetching', async () => {
@@ -342,4 +351,81 @@ test('event stack on synchronize does not fetch the PR', async () => {
   assert.equal(fetches, 0)
   assert.equal(result.should_run, true)
   assert.equal(result.is_bottom, true)
+})
+
+test('bottom-n=2 with this PR missing from the stack list fail-opens', async () => {
+  const dir = tempDir()
+  const event = writeEvent(dir, {
+    action: 'synchronize',
+    pull_request: {
+      number: 12,
+      base: { ref: 'feat/auth' },
+      stack: {
+        number: 50,
+        position: 2,
+        size: 4,
+        base: { ref: 'main' },
+      },
+    },
+  })
+  const env = baseEnv(dir, {
+    GITHUB_EVENT_NAME: 'pull_request',
+    GITHUB_EVENT_PATH: event,
+    'INPUT_BOTTOM-N': '2',
+  })
+  const { result } = await run(env, {
+    log: silent,
+    fetch: async () =>
+      jsonResponse({
+        number: 50,
+        pull_requests: [
+          { number: 10, state: 'open' },
+          { number: 11, state: 'open' },
+        ],
+      }),
+  })
+  assert.equal(result.should_run, true)
+  assert.match(result.reason, /could not determine remaining stack depth/)
+})
+
+test('writes every kebab-case output', async () => {
+  const dir = tempDir()
+  const event = writeEvent(dir, {
+    action: 'synchronize',
+    pull_request: {
+      number: 10,
+      base: { ref: 'main' },
+      stack: {
+        number: 50,
+        position: 1,
+        size: 3,
+        base: { ref: 'main' },
+      },
+    },
+  })
+  const env = baseEnv(dir, {
+    GITHUB_EVENT_NAME: 'pull_request',
+    GITHUB_EVENT_PATH: event,
+  })
+  await run(env, { log: silent })
+  const out = parseOutputs(env.GITHUB_OUTPUT)
+  assert.deepEqual(
+    Object.keys(out).sort(),
+    [
+      'is-bottom',
+      'is-stacked',
+      'is-top',
+      'position',
+      'reason',
+      'should-run',
+      'size',
+    ].sort(),
+  )
+  assert.equal(out['should-run'], 'true')
+  assert.equal(out['is-stacked'], 'true')
+  assert.equal(out['is-bottom'], 'true')
+  assert.equal(out['is-top'], 'false')
+  assert.equal(out.position, '1')
+  assert.equal(out.size, '3')
+  assert.ok(out.reason)
 })

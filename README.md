@@ -15,7 +15,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, stacked]
+    types: [opened, synchronize, reopened, edited, stacked]
   merge_group:
 
 permissions:
@@ -55,7 +55,7 @@ Add `needs: optimize-ci` and the `if:` to **every expensive job**. Cheap jobs (l
 | `bottom-n` | `1` | How many PRs at the bottom of the **remaining** stack run CI. |
 | `run-top` | `true` | Also run CI on the top PR of the stack. |
 | `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`. |
-| `pr-number` | event PR | Override PR number. Always loads stack from the API; ignores the triggering event’s `stack`. |
+| `pr-number` | event PR | Override PR number on `pull_request` / `pull_request_target`. Loads stack from the API; ignores the triggering event’s `stack`. Ignored on other events. |
 
 ## Outputs
 
@@ -79,7 +79,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 |---|---|
 | Not a `pull_request` / `pull_request_target` event (`workflow_dispatch`, `merge_group`, `push`) | `true` |
 | Error / API failure / unreadable stack | `true` (fail open) |
-| Invalid `bottom-n` or `run-top` | the optimize step **fails** (config error) |
+| Invalid `bottom-n` or `run-top` | `true` (fail open; logs an error) |
 | No stack after the event payload and API fallback | `true` (standalone PR) |
 | Lowest unmerged, and remaining depth ≤ `bottom-n` | `true` |
 | Remaining depth ≤ `bottom-n` | `true` |
@@ -123,7 +123,7 @@ A **workflow** that never starts (path filters, `[skip ci]`, workflow-level `if:
 
 ## Fail open
 
-Network errors, unreadable payloads, and unknown events run CI. The action never cancels the workflow run. It never skips `merge_group` (merge queue).
+Network errors, unreadable payloads, invalid knobs, and unknown events run CI. The action never cancels the workflow run. It never skips `merge_group` (merge queue).
 
 ## Development
 

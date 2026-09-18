@@ -5,7 +5,7 @@ export class ConfigError extends Error {
   }
 }
 
-const PR_EVENTS = new Set(['pull_request', 'pull_request_target'])
+export const PR_EVENTS = new Set(['pull_request', 'pull_request_target'])
 
 export function parseBottomN(raw) {
   const s = String(raw ?? '1').trim()
@@ -42,15 +42,27 @@ export function stackLooksValid(stack) {
   const size = Number(stack.size)
   if (!Number.isFinite(position) || !Number.isFinite(size)) return false
   if (position < 1 || size < 1) return false
+  if (!stack.base?.ref) return false
   return true
 }
 
-export function needsUnmergedDepth({ stack, prBaseRef, bottomN, runTop }) {
-  if (!stackLooksValid(stack)) return false
-  if (bottomN <= 1) return false
-  if (isLowestUnmerged(stack, prBaseRef)) return false
-  if (runTop && isTopOfStack(stack)) return false
-  return true
+export function emptyDiagnostics() {
+  return {
+    is_stacked: false,
+    is_bottom: false,
+    is_top: false,
+    position: '',
+    size: '',
+  }
+}
+
+export function failOpen(reason, extras = {}) {
+  return {
+    should_run: true,
+    reason,
+    ...emptyDiagnostics(),
+    ...extras,
+  }
 }
 
 function diagnostics(stack, prBaseRef) {
@@ -85,24 +97,16 @@ export function decide({
   remainingDepth = null,
 }) {
   if (!PR_EVENTS.has(eventName)) {
-    return {
-      should_run: true,
-      reason: `not a pull_request event (${eventName}); running CI`,
-      ...diagnostics(null, prBaseRef),
-    }
+    return failOpen(`not a pull_request event (${eventName}); running CI`)
   }
 
   if (stack == null) {
-    return {
-      should_run: true,
-      reason: 'not in a stack; running CI',
-      ...diagnostics(null, prBaseRef),
-    }
+    return failOpen('not in a stack; running CI')
   }
 
   const diag = diagnostics(stack, prBaseRef)
 
-  if (!stackLooksValid(stack)) {
+  if (!stackLooksValid(stack) || !prBaseRef) {
     return {
       should_run: true,
       reason: 'invalid stack metadata; running CI',
@@ -113,17 +117,6 @@ export function decide({
   const lowest = diag.is_bottom
   const top = diag.is_top
   const depth = lowest ? 1 : remainingDepth == null ? null : Number(remainingDepth)
-
-  if (
-    needsUnmergedDepth({ stack, prBaseRef, bottomN, runTop }) &&
-    (depth == null || !Number.isFinite(depth))
-  ) {
-    return {
-      should_run: true,
-      reason: 'could not determine remaining stack depth; running CI',
-      ...diag,
-    }
-  }
 
   if (depth != null && Number.isFinite(depth) && depth <= bottomN) {
     const reason = lowest
@@ -138,6 +131,14 @@ export function decide({
         ? 'single-layer stack (lowest unmerged and top)'
         : 'top of stack (run-top=true)'
     return { should_run: true, reason, ...diag }
+  }
+
+  if (bottomN > 1 && (depth == null || !Number.isFinite(depth))) {
+    return {
+      should_run: true,
+      reason: 'could not determine remaining stack depth; running CI',
+      ...diag,
+    }
   }
 
   const depthLabel =
