@@ -57,7 +57,7 @@ function diagnostics(stack, prBaseRef) {
   if (!stackLooksValid(stack)) {
     return {
       is_stacked: stack != null,
-      is_lowest: false,
+      is_bottom: false,
       is_top: false,
       position: '',
       size: '',
@@ -65,7 +65,7 @@ function diagnostics(stack, prBaseRef) {
   }
   return {
     is_stacked: true,
-    is_lowest: isLowestUnmerged(stack, prBaseRef),
+    is_bottom: isLowestUnmerged(stack, prBaseRef),
     is_top: isTopOfStack(stack),
     position: String(Number(stack.position)),
     size: String(Number(stack.size)),
@@ -110,7 +110,7 @@ export function decide({
     }
   }
 
-  const lowest = diag.is_lowest
+  const lowest = diag.is_bottom
   const top = diag.is_top
   const depth = lowest ? 1 : remainingDepth == null ? null : Number(remainingDepth)
 

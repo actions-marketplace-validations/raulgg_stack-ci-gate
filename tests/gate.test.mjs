@@ -241,7 +241,7 @@ test('pr_number override ignores triggering event stack', async () => {
   })
   assert.equal(result.should_run, false)
   assert.equal(result.position, '2')
-  assert.equal(result.is_lowest, false)
+  assert.equal(result.is_bottom, false)
 })
 
 test('bottom_n=2 fetches stack members for remaining depth', async () => {
@@ -341,5 +341,5 @@ test('event stack on synchronize does not fetch the PR', async () => {
   })
   assert.equal(fetches, 0)
   assert.equal(result.should_run, true)
-  assert.equal(result.is_lowest, true)
+  assert.equal(result.is_bottom, true)
 })

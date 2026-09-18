@@ -44,7 +44,7 @@ function writeOutputs(outputPath, result, log) {
   appendOutput(outputPath, 'should-run', stringifyBool(result.should_run))
   appendOutput(outputPath, 'reason', reason)
   appendOutput(outputPath, 'is-stacked', stringifyBool(result.is_stacked))
-  appendOutput(outputPath, 'is-lowest', stringifyBool(result.is_lowest))
+  appendOutput(outputPath, 'is-bottom', stringifyBool(result.is_bottom))
   appendOutput(outputPath, 'is-top', stringifyBool(result.is_top))
   appendOutput(outputPath, 'position', result.position ?? '')
   appendOutput(outputPath, 'size', result.size ?? '')
@@ -56,7 +56,7 @@ function failOpenResult(message) {
     should_run: true,
     reason: oneLine(message),
     is_stacked: false,
-    is_lowest: false,
+    is_bottom: false,
     is_top: false,
     position: '',
     size: '',

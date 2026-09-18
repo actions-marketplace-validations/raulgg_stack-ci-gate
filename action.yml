@@ -30,8 +30,8 @@ outputs:
     description: Why should-run is true or false
   is-stacked:
     description: Whether this PR is in a stack
-  is-lowest:
-    description: Whether this is the lowest unmerged PR
+  is-bottom:
+    description: Whether this is the remaining bottom PR of the stack
   is-top:
     description: Whether this is the top PR
   position:

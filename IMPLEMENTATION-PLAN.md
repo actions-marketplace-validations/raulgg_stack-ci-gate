@@ -155,7 +155,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 | `should-run` | Downstream: `if: needs.optimize-ci.outputs.should-run == 'true'` |
 | `reason` | Human reason, logged and output. |
 | `is-stacked` | `'true'` if a stack object was resolved |
-| `is-lowest` | remaining bottom (base-ref test) |
+| `is-bottom` | remaining bottom (base-ref test) |
 | `is-top` | `position == size` |
 | `position` | stack position or `''` |
 | `size` | stack size or `''` |
@@ -269,8 +269,8 @@ outputs:
     description: Why should-run is true or false
   is-stacked:
     description: Whether this PR is in a stack
-  is-lowest:
-    description: Whether this is the lowest unmerged PR
+  is-bottom:
+    description: Whether this is the remaining bottom PR of the stack
   is-top:
     description: Whether this is the top PR
   position:
@@ -292,7 +292,7 @@ Pure tests of `decide.mjs` plus mocked-fetch tests of the API fallback. Do not d
 Fixtures:
 
 1. standalone — no stack → `should-run=true`
-2. lowest of 3, `bottom-n=1` — `should-run=true`, `is-lowest=true`
+2. lowest of 3, `bottom-n=1` — `should-run=true`, `is-bottom=true`
 3. middle of 3, defaults — `should-run=false`
 4. top of 3, `run-top=true` — `should-run=true`, `is-top=true`
 5. top of 3, `run-top=false` — `should-run=false`

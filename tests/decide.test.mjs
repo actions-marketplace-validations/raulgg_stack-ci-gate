@@ -30,14 +30,14 @@ test('standalone — no stack → should_run=true', () => {
   assert.match(result.reason, /not in a stack/)
 })
 
-test('lowest of 3, bottom_n=1 → should_run=true, is_lowest', () => {
+test('lowest of 3, bottom_n=1 → should_run=true, is_bottom', () => {
   const result = decide({
     ...defaults,
     stack: stackOf({ position: 1, size: 3 }),
     prBaseRef: 'main',
   })
   assert.equal(result.should_run, true)
-  assert.equal(result.is_lowest, true)
+  assert.equal(result.is_bottom, true)
   assert.equal(result.is_top, false)
   assert.equal(result.position, '1')
   assert.equal(result.size, '3')
@@ -51,7 +51,7 @@ test('middle of 3, defaults → should_run=false', () => {
     prBaseRef: 'feat/auth',
   })
   assert.equal(result.should_run, false)
-  assert.equal(result.is_lowest, false)
+  assert.equal(result.is_bottom, false)
   assert.equal(result.is_top, false)
   assert.match(result.reason, /middle of stack/)
 })
@@ -97,7 +97,7 @@ test('after partial merge, former middle is lowest via base-ref even if position
     prBaseRef: 'main',
   })
   assert.equal(result.should_run, true)
-  assert.equal(result.is_lowest, true)
+  assert.equal(result.is_bottom, true)
   assert.equal(result.position, '2')
   assert.match(result.reason, /lowest unmerged/)
 })
@@ -109,7 +109,7 @@ test('single-layer stack is lowest and top, should_run=true', () => {
     prBaseRef: 'main',
   })
   assert.equal(result.should_run, true)
-  assert.equal(result.is_lowest, true)
+  assert.equal(result.is_bottom, true)
   assert.equal(result.is_top, true)
 })
 

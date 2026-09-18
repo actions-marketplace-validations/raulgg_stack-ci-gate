@@ -66,7 +66,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 | `should-run` | `'true'` means expensive jobs should run. |
 | `reason` | Why, also printed in the optimize job log. |
 | `is-stacked` | A stack object was resolved. |
-| `is-lowest` | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
+| `is-bottom` | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
 | `is-top` | `stack.position == stack.size`. |
 | `position` | Stack position, or empty. |
 | `size` | Stack size, or empty. |
