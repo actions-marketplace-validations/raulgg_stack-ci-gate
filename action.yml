@@ -1,0 +1,44 @@
+name: Stack CI Optimizer
+description: Run expensive CI only on the lowest unmerged and top PRs of a GitHub native stack.
+author: raulgg
+branding:
+  icon: layers
+  color: purple
+
+inputs:
+  bottom-n:
+    description: How many PRs at the bottom of the remaining stack should run CI
+    required: false
+    default: '1'
+  run-top:
+    description: Also run CI on the top PR of the stack
+    required: false
+    default: 'true'
+  github-token:
+    description: Token used to read pull request stack metadata
+    required: false
+    default: ${{ github.token }}
+  pr-number:
+    description: Override pull request number
+    required: false
+    default: ''
+
+outputs:
+  should-run:
+    description: True means expensive jobs should run
+  reason:
+    description: Why should-run is true or false
+  is-stacked:
+    description: Whether this PR is in a stack
+  is-lowest:
+    description: Whether this is the lowest unmerged PR
+  is-top:
+    description: Whether this is the top PR
+  position:
+    description: Stack position, or empty
+  size:
+    description: Stack size, or empty
+
+runs:
+  using: node24
+  main: src/gate.mjs
