@@ -46,6 +46,23 @@ jobs:
 
 Add `needs: gate` and the `if:` to each job that should not run on every pull request in the stack. Jobs that should still run on every layer (lint, labeler) omit both.
 
+The same `if:` works on a step. Keep `needs: gate` on the job and omit the job-level `if:`, then skip only the steps that should not run on every layer:
+
+```yaml
+  test:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
+      - run: npm run e2e
+        if: needs.gate.outputs.should-run == 'true'
+```
+
+The job still uses a runner, including `services:`. If no step in the job should run on a mid-stack pull request, skip the job instead.
+
+Work that should run only on the remaining bottom, or only on the top, uses `is-bottom` or `is-top` in `if:`. Add those names to `jobs.gate.outputs` first, the same way as `should-run`.
+
 `stacked` is the webhook GitHub fires when a PR joins a stack. Keep it in `types` so `should-run` is re-evaluated when that happens. The action also fetches stack membership on `opened`, so a just-created stack is still gated correctly if `stacked` is not delivered.
 
 ## Inputs
@@ -63,7 +80,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 
 | Name         | Meaning                                                                               |
 | ------------ | ------------------------------------------------------------------------------------- |
-| `should-run` | `'true'` means the jobs you gated should run.                                         |
+| `should-run` | `'true'` means the jobs or steps you gated should run.                                |
 | `reason`     | Why, also printed in the gate job log.                                                |
 | `is-stacked` | A stack object was resolved.                                                          |
 | `is-bottom`  | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
@@ -118,6 +135,8 @@ It skips mid-stack on `gh stack submit`. The `if:` above treats a missing `stack
 ## Required checks
 
 A job skipped by `if:` reports **Success**. GitHub will merge a PR whose required check was skipped this way.
+
+A skipped step also leaves its job **Success**, because the job ran. If a required check should mean that step ran, put the step in its own job and skip that job.
 
 That is why a `gate` job that always runs, plus `if:` on the jobs you gate, works: the workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
 
