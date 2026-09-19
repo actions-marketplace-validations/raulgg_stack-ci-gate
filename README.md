@@ -100,7 +100,7 @@ When the event has no `stack`, the action calls `GET /repos/{owner}/{repo}/pulls
 
 ## You might not need this action
 
-GitHub already documents a job-level `if:` for “lowest unmerged or top”:
+GitHub already documents conditions for "lowest unmerged or top" in [Optimizing CI for stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests). Their examples put `if:` on a step after checkout. On a job it looks like this:
 
 ```yaml
 if: >
@@ -109,7 +109,11 @@ if: >
   github.event.pull_request.stack.position == github.event.pull_request.stack.size
 ```
 
-Use that when you have one workflow, only care about the ends of the stack, and can live with those jobs running on `opened` (no `stack` on the event). Use this action when you want a shared `should-run` output, `bottom-n`, or a correct decision on `gh stack submit`.
+That expression covers lowest unmerged and top. It is enough if you have one workflow and accept a full run on `opened`. `pull_request.opened` never includes `stack`. GitHub's snippets use `stack != null && …`. Copy that onto a test job and standalone pull requests skip.
+
+The action is simpler in every case. Each gated job uses `needs: gate` and `if: needs.gate.outputs.should-run == 'true'`. The action fail-opens on errors and never skips `merge_group`, even with one test job.
+
+It skips mid-stack on `gh stack submit`. The `if:` above treats a missing `stack` as standalone, so every layer runs on `opened`. Set `bottom-n` and `run-top` on the gate job. `bottom-n` counts remaining open PRs from the current bottom. GitHub's `position` is the original index, so `position <= 2` is wrong after a partial merge.
 
 ## Required checks
 
