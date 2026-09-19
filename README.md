@@ -1,10 +1,10 @@
-# Stack CI Optimizer
+# Stack CI Gate
 
 [Stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs) are a chain of smaller, independently reviewable layers. GitHub Actions still runs as if each pull request targets the **stack base**, so a workflow for `main` runs for every pull request in the stack, not just the bottom one. A large stack multiplies CI usage. Checks run again when you rebase, including after you change a [lower layer](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/managing-stacked-pull-requests#making-changes-to-a-lower-layer) and rebase the branches above it (`gh stack rebase --upstack`).
 
 This action uses [stack metadata](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests) so those extra runs happen only where they are needed. You choose how many pull requests at the bottom of the remaining stack always run CI, and whether the **top** pull request (the full set of changes) runs as well. Mid-stack pull requests skip the jobs you gate: jobs that do not need to run on every layer after a lower-layer change or a cascading rebase.
 
-Add an `optimize-ci` job, read `should-run`, and gate those jobs with `needs.optimize-ci.outputs.should-run == 'true'`. The action reads `github.event.pull_request.stack`, and the Pulls REST API when that field is missing (`opened` never includes `stack`).
+Add a `gate` job, read `should-run`, and only run those jobs when `needs.gate.outputs.should-run == 'true'`. The action reads `github.event.pull_request.stack`, and the Pulls REST API when that field is missing (`opened` never includes `stack`).
 
 ## Usage
 
@@ -23,28 +23,28 @@ permissions:
   pull-requests: read
 
 jobs:
-  optimize-ci:
+  gate:
     runs-on: ubuntu-latest
     outputs:
       should-run: ${{ steps.gate.outputs.should-run }}
     steps:
-      - name: Optimize CI
+      - name: Gate stacked CI
         id: gate
-        uses: raulgg/stack-ci-action@v1
+        uses: raulgg/stack-ci-gate@v1
         with:
           bottom-n: 1
           run-top: true
 
   test:
-    needs: optimize-ci
-    if: needs.optimize-ci.outputs.should-run == 'true'
+    needs: gate
+    if: needs.gate.outputs.should-run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: npm test
 ```
 
-Add `needs: optimize-ci` and the `if:` to each job that should not run on every pull request in the stack. Jobs that should still run on every layer (lint, labeler) omit both.
+Add `needs: gate` and the `if:` to each job that should not run on every pull request in the stack. Jobs that should still run on every layer (lint, labeler) omit both.
 
 `stacked` is the webhook GitHub fires when a PR joins a stack. Actions documentation does not list it yet; if a runner ignores the unknown type, the action still fetches stack membership on `opened`. Keep it in `types` so `should-run` is re-evaluated if the event is delivered.
 
@@ -64,7 +64,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 | Name | Meaning |
 |---|---|
 | `should-run` | `'true'` means the jobs you gated should run. |
-| `reason` | Why, also printed in the optimize job log. |
+| `reason` | Why, also printed in the gate job log. |
 | `is-stacked` | A stack object was resolved. |
 | `is-bottom` | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
 | `is-top` | `stack.position == stack.size`. |
@@ -115,7 +115,7 @@ Use that when you have one workflow, only care about the ends of the stack, and 
 
 A job skipped by `if:` reports **Success**. GitHub will merge a PR whose required check was skipped this way.
 
-That is why an `optimize-ci` job that always runs, plus `if:` on the jobs you gate, works: the workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
+That is why a `gate` job that always runs, plus `if:` on the jobs you gate, works: the workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
 
 Those jobs did not run on the mid-stack pull requests. You are trusting CI on the **lowest unmerged** pull request (it targets the stack base) and the **top** (the full set of changes). If every layer must be tested independently, do not skip those jobs.
 

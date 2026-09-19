@@ -29,7 +29,7 @@ async function githubGet(url, { token, fetchImpl, timeoutMs = FETCH_TIMEOUT_MS }
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': GITHUB_API_VERSION,
-      'User-Agent': 'stack-ci-action',
+      'User-Agent': 'stack-ci-gate',
     },
     signal: AbortSignal.timeout(timeoutMs),
   })

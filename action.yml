@@ -1,5 +1,5 @@
-name: Stack CI Optimizer
-description: Reduce redundant CI on stacked pull requests after lower-layer changes and rebases.
+name: Stack CI Gate
+description: Decide whether gated jobs should run on this stacked pull request.
 author: raulgg
 branding:
   icon: layers

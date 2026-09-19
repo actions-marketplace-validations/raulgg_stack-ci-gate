@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Renamed the action to Stack CI Gate (`raulgg/stack-ci-gate`). The example job is `gate`.
+
 ### Added
 
 - Initial GitHub Action: skip redundant CI on mid-stack pull requests after lower-layer changes and rebases.

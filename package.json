@@ -1,8 +1,8 @@
 {
-  "name": "stack-ci-action",
+  "name": "stack-ci-gate",
   "private": true,
   "version": "1.0.0",
-  "description": "Reduce redundant CI on stacked pull requests after lower-layer changes and rebases.",
+  "description": "Decide whether gated jobs should run on this stacked pull request.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/raulgg/stack-ci-action"
+    "url": "https://github.com/raulgg/stack-ci-gate"
   },
   "license": "MIT"
 }

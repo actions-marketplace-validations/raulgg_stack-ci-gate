@@ -109,7 +109,7 @@ export async function run(env = process.env, deps = {}) {
     return { exitCode: 0, result }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    log.warn(`Could not optimize CI; running checks by default. (${message})`)
+    log.warn(`Could not gate stacked CI; running checks by default. (${message})`)
     const result = failOpen(`error; running CI (${message})`)
     write(result)
     return { exitCode: 0, result }

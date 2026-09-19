@@ -25,7 +25,7 @@ function parseOutputs(file) {
 }
 
 function tempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'stack-ci-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'stack-ci-gate-'))
 }
 
 function writeEvent(dir, payload) {
