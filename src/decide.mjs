@@ -147,7 +147,7 @@ export function decide({
       : `position ${diag.position}`
   return {
     should_run: false,
-    reason: `middle of stack (${depthLabel} of size ${diag.size}); skipping expensive CI`,
+    reason: `middle of stack (${depthLabel} of size ${diag.size}); skipping CI on this layer`,
     ...diag,
   }
 }

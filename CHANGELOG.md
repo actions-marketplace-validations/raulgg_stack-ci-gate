@@ -4,7 +4,7 @@
 
 ### Added
 
-- Initial GitHub Action: skip expensive CI on middle layers of a GitHub native stack.
+- Initial GitHub Action: skip redundant CI on mid-stack pull requests after lower-layer changes and rebases.
 - Inputs: `bottom-n`, `run-top`, `github-token`, `pr-number`.
 - Outputs: `should-run`, `reason`, `is-stacked`, `is-bottom`, `is-top`, `position`, `size`.
 - REST fallback on `opened` / `reopened` when `github.event.pull_request.stack` is missing.

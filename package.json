@@ -2,7 +2,7 @@
   "name": "stack-ci-action",
   "private": true,
   "version": "1.0.0",
-  "description": "Run expensive CI only on the lowest unmerged and top PRs of a GitHub native stack.",
+  "description": "Reduce redundant CI on stacked pull requests after lower-layer changes and rebases.",
   "type": "module",
   "engines": {
     "node": ">=20"

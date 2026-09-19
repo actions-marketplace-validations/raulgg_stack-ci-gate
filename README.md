@@ -1,10 +1,10 @@
 # Stack CI Optimizer
 
-A GitHub Action that decides **when** expensive CI should run on [GitHub native stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs). Add a first `optimize-ci` job, read its `should-run` output, and gate downstream jobs with `needs.optimize-ci.outputs.should-run == 'true'`.
+[Stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs) are a chain of smaller, independently reviewable layers. GitHub Actions still runs as if each pull request targets the **stack base**, so a workflow for `main` runs for every pull request in the stack, not just the bottom one. A large stack multiplies CI usage. Checks run again when you rebase, including after you change a [lower layer](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/managing-stacked-pull-requests#making-changes-to-a-lower-layer) and rebase the branches above it (`gh stack rebase --upstack`).
 
-The action reads `github.event.pull_request.stack` and, when that is missing (it always is on `opened`), the Pulls REST API.
+This action uses [stack metadata](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests) so those extra runs happen only where they are needed. You choose how many pull requests at the bottom of the remaining stack always run CI, and whether the **top** pull request (the full set of changes) runs as well. Mid-stack pull requests skip the jobs you gate: jobs that do not need to run on every layer after a lower-layer change or a cascading rebase.
 
-Defaults run full CI on the **lowest unmerged** PR (the one that currently targets the stack base, usually `main`) and the **top** of the stack (the full changeset). Middle layers skip the expensive jobs.
+Add an `optimize-ci` job, read `should-run`, and gate those jobs with `needs.optimize-ci.outputs.should-run == 'true'`. The action reads `github.event.pull_request.stack`, and the Pulls REST API when that field is missing (`opened` never includes `stack`).
 
 ## Usage
 
@@ -44,7 +44,7 @@ jobs:
       - run: npm test
 ```
 
-Add `needs: optimize-ci` and the `if:` to **every expensive job**. Cheap jobs (lint, labeler) omit both so they still run on middle layers.
+Add `needs: optimize-ci` and the `if:` to each job that should not run on every pull request in the stack. Jobs that should still run on every layer (lint, labeler) omit both.
 
 `stacked` is the webhook GitHub fires when a PR joins a stack. Actions documentation does not list it yet; if a runner ignores the unknown type, the action still fetches stack membership on `opened`. Keep it in `types` so `should-run` is re-evaluated if the event is delivered.
 
@@ -63,7 +63,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 
 | Name | Meaning |
 |---|---|
-| `should-run` | `'true'` means expensive jobs should run. |
+| `should-run` | `'true'` means the jobs you gated should run. |
 | `reason` | Why, also printed in the optimize job log. |
 | `is-stacked` | A stack object was resolved. |
 | `is-bottom` | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
@@ -73,7 +73,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 
 ## How `should-run` is decided
 
-`should-run = true` means expensive jobs should run.
+`should-run = true` means the jobs you gated should run.
 
 | Condition | `should-run` |
 |---|---|
@@ -84,7 +84,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 | Lowest unmerged, and remaining depth ≤ `bottom-n` | `true` |
 | Remaining depth ≤ `bottom-n` | `true` |
 | `run-top` and this PR is top | `true` |
-| Else (middle / upstack beyond N) | `false` |
+| Else (mid-stack, above `bottom-n`) | `false` |
 
 Lowest unmerged is **not** `position == 1`. GitHub documents `position == 1` as the original bottom of the stack object, which can disagree with the remaining bottom after a partial merge. This action uses `stack.base.ref == pull_request.base.ref`. For `bottom-n > 1` it lists the stack via `GET /repos/{owner}/{repo}/stacks/{number}` and counts **open** PRs from the bottom.
 
@@ -94,7 +94,7 @@ A 1-PR stack is both lowest and top; `should-run` is true.
 
 GitHub creates a pull request, then adds it to a stack. `pull_request.opened` never includes `stack`. Default `on: pull_request` only runs for `opened`, `synchronize`, and `reopened`.
 
-If the action treated a missing stack as “standalone, run everything,” `gh stack submit` would start full CI on every layer.
+If the action treated a missing stack as a standalone PR, `gh stack submit` would run the gated jobs on every layer.
 
 When the event has no `stack`, the action calls `GET /repos/{owner}/{repo}/pulls/{number}`. On `opened` and `reopened` it retries for a few seconds so a just-created stack is visible. If the PR is still not in a stack, it runs CI (standalone).
 
@@ -109,15 +109,15 @@ if: >
   github.event.pull_request.stack.position == github.event.pull_request.stack.size
 ```
 
-Use that when you have one workflow, only care about the ends of the stack, and can live with a full CI run on `opened` (no `stack` on the event). Use this action when you want a shared `should-run` output, `bottom-n`, or a correct decision on `gh stack submit`.
+Use that when you have one workflow, only care about the ends of the stack, and can live with those jobs running on `opened` (no `stack` on the event). Use this action when you want a shared `should-run` output, `bottom-n`, or a correct decision on `gh stack submit`.
 
 ## Required checks
 
 A job skipped by `if:` reports **Success**. GitHub will merge a PR whose required check was skipped this way.
 
-That is why an `optimize-ci` job that always runs, plus `if:` on expensive jobs, works: the workflow still starts, the job names are reported, and middle layers stay mergeable.
+That is why an `optimize-ci` job that always runs, plus `if:` on the jobs you gate, works: the workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
 
-The cost is that those tests never ran on the middle layers. You are trusting **lowest unmerged** (about to land on trunk) and **top** (full changeset). If every layer must be tested independently, do not skip.
+Those jobs did not run on the mid-stack pull requests. You are trusting CI on the **lowest unmerged** pull request (it targets the stack base) and the **top** (the full set of changes). If every layer must be tested independently, do not skip those jobs.
 
 A **workflow** that never starts (path filters, `[skip ci]`, workflow-level `if:`) leaves required checks **Pending** and blocks merge. Do not skip the whole workflow.
 
