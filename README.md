@@ -46,45 +46,45 @@ jobs:
 
 Add `needs: gate` and the `if:` to each job that should not run on every pull request in the stack. Jobs that should still run on every layer (lint, labeler) omit both.
 
-`stacked` is the webhook GitHub fires when a PR joins a stack. Actions documentation does not list it yet; if a runner ignores the unknown type, the action still fetches stack membership on `opened`. Keep it in `types` so `should-run` is re-evaluated if the event is delivered.
+`stacked` is the webhook GitHub fires when a PR joins a stack. Keep it in `types` so `should-run` is re-evaluated when that happens. The action also fetches stack membership on `opened`, so a just-created stack is still gated correctly if `stacked` is not delivered.
 
 ## Inputs
 
-| Name | Default | Purpose |
-|---|---|---|
-| `bottom-n` | `1` | How many PRs at the bottom of the **remaining** stack run CI. |
-| `run-top` | `true` | Also run CI on the top PR of the stack. |
-| `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`. |
-| `pr-number` | event PR | Override PR number on `pull_request` / `pull_request_target`. Loads stack from the API; ignores the triggering event’s `stack`. Ignored on other events. |
+| Name           | Default               | Purpose                                                                                                                                                  |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bottom-n`     | `1`                   | How many PRs at the bottom of the **remaining** stack run CI.                                                                                            |
+| `run-top`      | `true`                | Also run CI on the top PR of the stack.                                                                                                                  |
+| `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`.                                                                                      |
+| `pr-number`    | event PR              | Override PR number on `pull_request` / `pull_request_target`. Loads stack from the API; ignores the triggering event’s `stack`. Ignored on other events. |
 
 ## Outputs
 
 All strings. Compare with `== 'true'` / `== 'false'`.
 
-| Name | Meaning |
-|---|---|
-| `should-run` | `'true'` means the jobs you gated should run. |
-| `reason` | Why, also printed in the gate job log. |
-| `is-stacked` | A stack object was resolved. |
-| `is-bottom` | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
-| `is-top` | `stack.position == stack.size`. |
-| `position` | Stack position, or empty. |
-| `size` | Stack size, or empty. |
+| Name         | Meaning                                                                               |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `should-run` | `'true'` means the jobs you gated should run.                                         |
+| `reason`     | Why, also printed in the gate job log.                                                |
+| `is-stacked` | A stack object was resolved.                                                          |
+| `is-bottom`  | This PR currently targets the stack base (`stack.base.ref == pull_request.base.ref`). |
+| `is-top`     | `stack.position == stack.size`.                                                       |
+| `position`   | Stack position, or empty.                                                             |
+| `size`       | Stack size, or empty.                                                                 |
 
 ## How `should-run` is decided
 
 `should-run = true` means the jobs you gated should run.
 
-| Condition | `should-run` |
-|---|---|
-| Not a `pull_request` / `pull_request_target` event (`workflow_dispatch`, `merge_group`, `push`) | `true` |
-| Error / API failure / unreadable stack | `true` (fail open) |
-| Invalid `bottom-n` or `run-top` | `true` (fail open; logs an error) |
-| No stack after the event payload and API fallback | `true` (standalone PR) |
-| Lowest unmerged, and remaining depth ≤ `bottom-n` | `true` |
-| Remaining depth ≤ `bottom-n` | `true` |
-| `run-top` and this PR is top | `true` |
-| Else (mid-stack, above `bottom-n`) | `false` |
+| Condition                                                                                       | `should-run`                      |
+| ----------------------------------------------------------------------------------------------- | --------------------------------- |
+| Not a `pull_request` / `pull_request_target` event (`workflow_dispatch`, `merge_group`, `push`) | `true`                            |
+| Error / API failure / unreadable stack                                                          | `true` (fail open)                |
+| Invalid input for `bottom-n` or `run-top`                                                       | `true` (fail open; logs an error) |
+| No stack after the event payload and API fallback                                               | `true` (standalone PR)            |
+| Lowest unmerged, and remaining depth ≤ `bottom-n`                                               | `true`                            |
+| Remaining depth ≤ `bottom-n`                                                                    | `true`                            |
+| `run-top` and this PR is top                                                                    | `true`                            |
+| Else (mid-stack, above `bottom-n`)                                                              | `false`                           |
 
 Lowest unmerged is **not** `position == 1`. GitHub documents `position == 1` as the original bottom of the stack object, which can disagree with the remaining bottom after a partial merge. This action uses `stack.base.ref == pull_request.base.ref`. For `bottom-n > 1` it lists the stack via `GET /repos/{owner}/{repo}/stacks/{number}` and counts **open** PRs from the bottom.
 
