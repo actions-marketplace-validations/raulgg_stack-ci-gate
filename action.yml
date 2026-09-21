@@ -1,5 +1,5 @@
 name: Stack CI Gate
-description: Decide whether gated jobs should run on this stacked pull request.
+description: When pull requests are stacked on each other, skip CI in the middle of the chain. Run it on the next one to merge, and on the last one if you want.
 author: raulgg
 branding:
   icon: layers
