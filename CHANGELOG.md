@@ -4,6 +4,10 @@ User-facing changes to this action. The format is [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Changed
+
+- Fail-open `reason` and logs omit GitHub API response bodies and neutralize `::` / `##[` workflow-command sequences.
+
 ## 1.0.0 - 2026-09-20
 
 ### Added

@@ -8,7 +8,7 @@ Add a `gate` job, read `should-run`, and only run those jobs when `needs.gate.ou
 
 ## Usage
 
-Pin a version tag or SHA, not `@main`. User-facing changes are in [CHANGELOG.md](CHANGELOG.md). How to cut a version is in [RELEASING.md](RELEASING.md).
+The example pins `@v1`. That tag is the latest 1.x and moves when a new 1.x is tagged. A commit SHA stays on that tree: `raulgg/stack-ci-gate@dc6d1ab44cd57a67eea8049697cece1274a8b30f` (`v1.0.0`). Do not pin `@main`. User-facing changes are in [CHANGELOG.md](CHANGELOG.md). How to cut a version is in [RELEASING.md](RELEASING.md).
 
 ```yaml
 name: CI
@@ -20,11 +20,13 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   gate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       should-run: ${{ steps.gate.outputs.should-run }}
     steps:
@@ -43,6 +45,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: npm test
 ```
+
+The `gate` job lists its own `permissions`, so it keeps `contents: read` and `pull-requests: read` even if the workflow later grants write elsewhere. The example uses `pull_request`. `pull_request_target` would give this job the base repository token and secrets.
 
 Add `needs: gate` and the `if:` to each job that should not run on every pull request in the stack. Jobs that should still run on every layer (lint, labeler) omit both.
 
@@ -71,8 +75,8 @@ Work that should run only on the remaining bottom, or only on the top, uses `is-
 | -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bottom-n`     | `1`                   | How many PRs at the bottom of the **remaining** stack run CI.                                                                                            |
 | `run-top`      | `true`                | Also run CI on the top PR of the stack.                                                                                                                  |
-| `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`.                                                                                      |
-| `pr-number`    | event PR              | Override PR number on `pull_request` / `pull_request_target`. Loads stack from the API; ignores the triggering event’s `stack`. Ignored on other events. |
+| `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`. `${{ github.token }}` expires when the job ends.                                     |
+| `pr-number`    | event PR              | Override PR number on `pull_request`. Loads stack from the API; ignores the triggering event’s `stack`. Ignored on other events.                         |
 
 ## Outputs
 
