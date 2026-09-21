@@ -1,6 +1,10 @@
 # Stack CI Gate
 
-[Stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs) are a chain of smaller, independently reviewable layers. GitHub Actions still runs as if each pull request targets the **stack base**, so a workflow for `main` runs for every pull request in the stack, not just the bottom one. A large stack multiplies CI usage. Checks run again when you rebase, including after you change a [lower layer](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/managing-stacked-pull-requests#making-changes-to-a-lower-layer) and rebase the branches above it (`gh stack rebase --upstack`).
+[![Test](https://github.com/raulgg/stack-ci-gate/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/raulgg/stack-ci-gate/actions/workflows/test.yml?query=branch%3Amain)
+[![Release](https://img.shields.io/github/v/release/raulgg/stack-ci-gate)](https://github.com/raulgg/stack-ci-gate/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/raulgg/stack-ci-gate)](LICENSE)
+
+This GitHub Action skips redundant CI on [GitHub's stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs), a chain of smaller, independently reviewable layers. GitHub Actions still run as if each pull request targets the **stack base**, so a workflow for `main` runs for every pull request in the stack, not just the bottom one. A large stack multiplies CI usage. Checks run again when you rebase, including after you change a [lower layer](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/managing-stacked-pull-requests#making-changes-to-a-lower-layer) and rebase the branches above it (`gh stack rebase --upstack`).
 
 This action uses [stack metadata](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests) so those extra runs happen only where they are needed. You choose how many pull requests at the bottom of the remaining stack always run CI, and whether the **top** pull request (the full set of changes) runs as well. Mid-stack pull requests skip the jobs you gate: jobs that do not need to run on every layer after a lower-layer change or a cascading rebase.
 
@@ -53,14 +57,14 @@ Add `needs: gate` and the `if:` to each job that should not run on every pull re
 The same `if:` works on a step. Keep `needs: gate` on the job and omit the job-level `if:`, then skip only the steps that should not run on every layer:
 
 ```yaml
-  test:
-    needs: gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm test
-      - run: npm run e2e
-        if: needs.gate.outputs.should-run == 'true'
+test:
+  needs: gate
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - run: npm test
+    - run: npm run e2e
+      if: needs.gate.outputs.should-run == 'true'
 ```
 
 The job still uses a runner, including `services:`. If no step in the job should run on a mid-stack pull request, skip the job instead.
@@ -71,12 +75,12 @@ Work that should run only on the remaining bottom, or only on the top, uses `is-
 
 ## Inputs
 
-| Name           | Default               | Purpose                                                                                                                                                  |
-| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bottom-n`     | `1`                   | How many PRs at the bottom of the **remaining** stack run CI.                                                                                            |
-| `run-top`      | `true`                | Also run CI on the top PR of the stack.                                                                                                                  |
-| `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`. `${{ github.token }}` expires when the job ends.                                     |
-| `pr-number`    | event PR              | Override PR number on `pull_request`. Loads stack from the API; ignores the triggering event’s `stack`. Ignored on other events.                         |
+| Name           | Default               | Purpose                                                                                                                          |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `bottom-n`     | `1`                   | How many PRs at the bottom of the **remaining** stack run CI.                                                                    |
+| `run-top`      | `true`                | Also run CI on the top PR of the stack.                                                                                          |
+| `github-token` | `${{ github.token }}` | Reads pull request and stack metadata. Needs `pull-requests: read`. `${{ github.token }}` expires when the job ends.             |
+| `pr-number`    | event PR              | Override PR number on `pull_request`. Loads stack from the API; ignores the triggering event's `stack`. Ignored on other events. |
 
 ## Outputs
 
@@ -107,7 +111,7 @@ All strings. Compare with `== 'true'` / `== 'false'`.
 | `run-top` and this PR is top                                                                    | `true`                            |
 | Else (mid-stack, above `bottom-n`)                                                              | `false`                           |
 
-Lowest unmerged is **not** `position == 1`. GitHub documents `position == 1` as the original bottom of the stack object, which can disagree with the remaining bottom after a partial merge. This action uses `stack.base.ref == pull_request.base.ref`. For `bottom-n > 1` it lists the stack via `GET /repos/{owner}/{repo}/stacks/{number}` and counts **open** PRs from the bottom.
+Lowest unmerged is not `position == 1`. GitHub documents `position == 1` as the original bottom of the stack object, which can disagree with the remaining bottom after a partial merge. This action uses `stack.base.ref == pull_request.base.ref`. For `bottom-n > 1` it lists the stack via `GET /repos/{owner}/{repo}/stacks/{number}` and counts **open** PRs from the bottom.
 
 A 1-PR stack is both lowest and top; `should-run` is true.
 
@@ -115,9 +119,7 @@ A 1-PR stack is both lowest and top; `should-run` is true.
 
 GitHub creates a pull request, then adds it to a stack. `pull_request.opened` never includes `stack`. Default `on: pull_request` only runs for `opened`, `synchronize`, and `reopened`.
 
-If the action treated a missing stack as a standalone PR, `gh stack submit` would run the gated jobs on every layer.
-
-When the event has no `stack`, the action calls `GET /repos/{owner}/{repo}/pulls/{number}`. On `opened` and `reopened` it retries for a few seconds so a just-created stack is visible. If the PR is still not in a stack, it runs CI (standalone).
+When the event has no `stack`, the action calls `GET /repos/{owner}/{repo}/pulls/{number}`. On `opened` and `reopened` it retries for a few seconds so a just-created stack is visible. If the PR is still not in a stack, it runs CI (standalone). Without that fetch, `gh stack submit` would look like a set of standalone PRs and run the gated jobs on every layer.
 
 ## You might not need this action
 
@@ -132,7 +134,7 @@ if: >
 
 That expression covers lowest unmerged and top. It is enough if you have one workflow and accept a full run on `opened`. `pull_request.opened` never includes `stack`. GitHub's snippets use `stack != null && …`. Copy that onto a test job and standalone pull requests skip.
 
-The action is simpler in every case. Each gated job uses `needs: gate` and `if: needs.gate.outputs.should-run == 'true'`. The action fail-opens on errors and never skips `merge_group`, even with one test job.
+Each gated job uses `needs: gate` and `if: needs.gate.outputs.should-run == 'true'`. The action fail-opens on errors and never skips `merge_group`, even with one test job.
 
 It skips mid-stack on `gh stack submit`. The `if:` above treats a missing `stack` as standalone, so every layer runs on `opened`. Set `bottom-n` and `run-top` on the gate job. `bottom-n` counts remaining open PRs from the current bottom. GitHub's `position` is the original index, so `position <= 2` is wrong after a partial merge.
 
@@ -142,7 +144,7 @@ A job skipped by `if:` reports **Success**. GitHub will merge a PR whose require
 
 A skipped step also leaves its job **Success**, because the job ran. If a required check should mean that step ran, put the step in its own job and skip that job.
 
-That is why a `gate` job that always runs, plus `if:` on the jobs you gate, works: the workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
+Keep a `gate` job that always runs, and put `if:` on the jobs you gate. The workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
 
 Those jobs did not run on the mid-stack pull requests. You are trusting CI on the **lowest unmerged** pull request (it targets the stack base) and the **top** (the full set of changes). If every layer must be tested independently, do not skip those jobs.
 
@@ -160,6 +162,8 @@ npm test
 
 Zero runtime dependencies. The action is plain Node 24 ESM (`src/gate.mjs`).
 
----
+## License
+
+[MIT](LICENSE)
 
 Inspired by [Graphite CI](https://github.com/withgraphite/graphite-ci-action).
