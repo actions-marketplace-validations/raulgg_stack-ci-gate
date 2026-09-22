@@ -172,14 +172,6 @@ You are trusting CI on the lowest unmerged pull request, which targets the stack
 
 A workflow that never starts (path filters, `[skip ci]`, workflow-level `if:`) leaves required checks **Pending** and blocks merge.
 
-## Development
-
-```bash
-npm test
-```
-
-Zero runtime dependencies.
-
 ## License
 
 [MIT](LICENSE)
