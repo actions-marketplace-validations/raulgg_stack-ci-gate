@@ -5,9 +5,9 @@
 [![Release](https://img.shields.io/github/v/release/raulgg/stack-ci-gate)](https://github.com/raulgg/stack-ci-gate/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/raulgg/stack-ci-gate)](LICENSE)
 
-This GitHub Action skips redundant CI on [GitHub's stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs). GitHub Actions still run as if each pull request targets the **stack base**, so a workflow for `main` runs for every pull request in the stack, not just the bottom one. Checks run again when you rebase.
+This GitHub Action skips redundant CI on [GitHub's stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs). GitHub Actions still run as if each pull request targets the stack base, so a workflow for `main` runs for every pull request in the stack. Checks run again when you rebase.
 
-This action uses stack metadata so the jobs you gate run on the bottom of the remaining stack, and on the top if you leave that on. Mid-stack pull requests skip.
+This action uses stack metadata so the jobs you gate run on the bottom of the remaining stack, and on the top if you leave that on. Mid-stack pull requests skip those jobs.
 
 ## Quick start
 
@@ -19,7 +19,7 @@ on:
     types: [opened, synchronize, reopened, edited, stacked]
 ```
 
-2. Add a `gate` job that always runs. This job lists `pull-requests: read`. The restricted token default is only `contents` and `packages`.
+2. Add a `gate` job that always runs and lists `pull-requests: read`. The restricted token default is only `contents` and `packages`.
 
 ```yaml
 gate:
@@ -45,7 +45,7 @@ if: needs.gate.outputs.should-run == 'true'
 
 Pin a major tag (`@v1` in these examples). It moves with compatible releases. A version tag or a SHA from [Releases](https://github.com/raulgg/stack-ci-gate/releases) stays put. Do not pin `@main`.
 
-The example adds `merge_group` for a merge queue (`should-run` is `'true'` on that event). The gate job lists `contents: read` and `pull-requests: read` so they stay if the workflow later grants write elsewhere. Use `pull_request`. `pull_request_target` would give this job the base repository token and secrets.
+The example adds `merge_group` for a merge queue. On that event, `should-run` is `'true'`. The gate job lists `contents: read` and `pull-requests: read` so those permissions stay if the workflow later grants write elsewhere. Use `pull_request`. `pull_request_target` would give this job the base repository token and secrets.
 
 ```yaml
 name: CI
@@ -79,7 +79,7 @@ jobs:
       - run: npm test
 ```
 
-Jobs that should still run on every layer (lint, labeler) omit `needs: gate` and the `if:`.
+Jobs that should still run on every layer, such as lint or labeler, omit `needs: gate` and the `if:`.
 
 ### Inputs
 
@@ -92,7 +92,7 @@ Jobs that should still run on every layer (lint, labeler) omit `needs: gate` and
 
 ### Outputs
 
-All strings. Compare with `== 'true'` / `== 'false'`. Gate jobs with `should-run`. Use `is-bottom` or `is-top` when a job should run only there; add those names to `jobs.gate.outputs` first.
+All outputs are strings. Compare them with `== 'true'` or `== 'false'`. Gate jobs with `should-run`. Use `is-bottom` or `is-top` when a job should run only there, and add those names to `jobs.gate.outputs` first.
 
 | Name         | Meaning                                      |
 | ------------ | -------------------------------------------- |
@@ -114,7 +114,7 @@ All strings. Compare with `== 'true'` / `== 'false'`. Gate jobs with `should-run
 | Mid-stack, above `bottom-n`                                                       | `'false'`    |
 | Error, bad knobs, or unreadable stack                                             | `'true'`     |
 
-Remaining bottom is the PR whose base is the stack base. After a partial merge that is not `position == 1`. A 1-PR stack is both bottom and top.
+Remaining bottom is the PR whose base is the stack base. After a partial merge, remaining bottom is not `position == 1`. A 1-PR stack is both bottom and top.
 
 The action never cancels the run. `merge_group` always runs.
 
@@ -134,7 +134,7 @@ GitHub's default is `opened`, `synchronize`, `reopened`. Without `edited`, a rem
 
 ## You might not need this action
 
-GitHub already documents conditions for "lowest unmerged or top" in [Optimizing CI for stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests). On a job it looks like this:
+GitHub documents conditions for "lowest unmerged or top" in [Optimizing CI for stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/optimizing-ci-for-stacked-pull-requests). On a job it looks like this:
 
 ```yaml
 if: >
@@ -143,7 +143,7 @@ if: >
   github.event.pull_request.stack.position == github.event.pull_request.stack.size
 ```
 
-That expression covers lowest unmerged and top. It is enough if you have one workflow and accept a full run on `opened`. GitHub's snippets use `stack != null && …`. Copy that onto a test job and standalone pull requests skip.
+That expression covers lowest unmerged and top. It is enough when you have one workflow and accept a full run on `opened`. GitHub's snippets use `stack != null && …`. Copying that onto a test job skips standalone pull requests.
 
 This action skips mid-stack on `gh stack submit`. The `if:` above treats a missing `stack` as standalone, so every layer runs on `opened`.
 
@@ -151,7 +151,7 @@ This action skips mid-stack on `gh stack submit`. The `if:` above treats a missi
 
 A job skipped by `if:` reports **Success**. GitHub will merge a PR whose required check was skipped this way.
 
-A skipped step also leaves its job **Success**, because the job ran. If a required check should mean that step ran, put the step in its own job and skip that job. Keep `needs: gate` on the job and omit the job-level `if:`, then skip only the steps that should not run on every layer:
+A skipped step also leaves its job **Success**, because the job ran. If a required check should mean that step ran, put the step in its own job and skip that job. Keep `needs: gate` on the job and omit the job-level `if:`. Then skip only the steps that should not run on every layer:
 
 ```yaml
 test:
@@ -168,7 +168,7 @@ The job still uses a runner, including `services:`. If no step in the job should
 
 Keep a `gate` job that always runs, and put `if:` on the jobs you gate. The workflow still starts, the job names are reported, and mid-stack pull requests stay mergeable.
 
-You are trusting CI on the lowest unmerged pull request (it targets the stack base) and the top (the full set of changes). If every layer must be tested independently, do not skip those jobs.
+You are trusting CI on the lowest unmerged pull request, which targets the stack base, and the top, which is the full set of changes. If every layer must be tested independently, do not skip those jobs.
 
 A workflow that never starts (path filters, `[skip ci]`, workflow-level `if:`) leaves required checks **Pending** and blocks merge.
 
