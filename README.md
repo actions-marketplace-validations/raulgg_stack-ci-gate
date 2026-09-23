@@ -41,6 +41,20 @@ needs: gate
 if: needs.gate.outputs.should-run == 'true'
 ```
 
+### Have an agent set this up for you
+
+Paste this into an agent opened on your repo.
+
+```text
+Set up Stack CI Gate in this repo.
+
+Read https://github.com/raulgg/stack-ci-gate/blob/main/README.md and apply it to workflows under .github/workflows that already run on pull_request. Keep existing triggers, filters, permissions, and jobs.
+
+Choose which jobs or steps skip on mid-stack pull requests. Decide from recent Actions run times and from what the steps do. Gate work that takes long enough for a run on the bottom and the top to be enough. Leave short checks on every layer, such as lint and format. Skip the whole job when nothing in it should run mid-stack. Skip a step when the rest of the job should still run.
+
+Summarize what you gated, what still runs on every layer, and which mid-stack checks report Success without running.
+```
+
 ## Usage
 
 Pin a major tag (`@v1` in these examples). It moves with compatible releases. A version tag or a SHA from [Releases](https://github.com/raulgg/stack-ci-gate/releases) stays put. Do not pin `@main`.
