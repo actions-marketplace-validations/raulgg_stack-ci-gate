@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/stack-ci-gate-action-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset=".github/assets/stack-ci-gate-action-light.png">
+  <img alt="Stack CI Gate" src=".github/assets/stack-ci-gate-action-light.png">
+</picture>
+
 # Stack CI Gate
 
 [![Test](https://github.com/raulgg/stack-ci-gate/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/raulgg/stack-ci-gate/actions/workflows/test.yml?query=branch%3Amain)
