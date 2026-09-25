@@ -197,3 +197,13 @@ A workflow that never starts (path filters, `[skip ci]`, workflow-level `if:`) l
 [MIT](LICENSE)
 
 Inspired by [Graphite CI](https://github.com/withgraphite/graphite-ci-action).
+
+## Install the skill
+
+The skill is optional. Install it at project level, or globally, and an agent will set up this action when you use stacks. The jobs you gate run on the bottom of the remaining stack and on the top. On a smaller edit, or when you create, submit, link, rebase, or restack, the agent reminds you once. If it edits a workflow, it leaves that edit uncommitted.
+
+```bash
+npx skills add raulgg/stack-ci-gate
+```
+
+The command above installs the skill at project level. Add `-g` to install it globally (user-level) instead of project-level: `npx skills add raulgg/stack-ci-gate -g`.
