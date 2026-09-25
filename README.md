@@ -208,4 +208,4 @@ The command above installs the skill at project level. Add `-g` to install it gl
 
 ---
 
-<p><sub>Inspired by Graphite CLI.</sub></p>
+<sub>Inspired by [Graphite CI](https://github.com/withgraphite/graphite-ci-action).</sub>
