@@ -206,4 +206,6 @@ The command above installs the skill at project level. Add `-g` to install it gl
 
 [MIT](LICENSE)
 
-<p><small><small>Inspired by Graphite CLI.</small></small></p>
+---
+
+<p><sub>Inspired by Graphite CLI.</sub></p>
