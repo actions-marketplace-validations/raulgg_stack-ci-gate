@@ -11,7 +11,7 @@
 [![Release](https://img.shields.io/github/v/release/raulgg/stack-ci-gate)](https://github.com/raulgg/stack-ci-gate/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/raulgg/stack-ci-gate)](LICENSE)
 
-This GitHub Action skips redundant CI on [GitHub's stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs). GitHub Actions still run as if each pull request targets the stack base, so a workflow for `main` runs for every pull request in the stack. Checks run again when you rebase.
+This GitHub Action is a CI gate to optimize GitHub stacked PRs (gh stack). It skips redundant CI on [GitHub's stacked pull requests](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs). GitHub Actions still run as if each pull request targets the stack base, so a workflow for `main` runs for every pull request in the stack. Checks run again when you rebase.
 
 This action uses stack metadata so the jobs you gate run on the bottom of the remaining stack, and on the top if you leave that on. Mid-stack pull requests skip those jobs.
 
