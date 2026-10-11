@@ -49,7 +49,7 @@ if: needs.gate.outputs.should-run == 'true'
 
 ### Have an agent set this up for you
 
-Paste this into an agent opened on your repo.
+Open your repo in a coding agent and send the prompt below. It sets up the gate and installs the skill.
 
 ```text
 Gate the pull_request workflows in this repo. Follow https://github.com/raulgg/stack-ci-gate/blob/main/README.md and keep their triggers, filters, permissions, and jobs.
