@@ -52,18 +52,9 @@ if: needs.gate.outputs.should-run == 'true'
 Paste this into an agent opened on your repo.
 
 ```text
-Set up Stack CI Gate in this repo.
-
-Read https://github.com/raulgg/stack-ci-gate/blob/main/README.md and apply it to workflows under .github/workflows that already run on pull_request. Keep existing triggers, filters, permissions, and jobs.
-
-Choose which jobs or steps skip on mid-stack pull requests. Decide from recent Actions run times and from what the steps do. Gate work that takes long enough for a run on the bottom and the top to be enough. Leave short checks on every layer, such as lint and format. Skip the whole job when nothing in it should run mid-stack. Skip a step when the rest of the job should still run.
-
-Install the stack-ci-gate skill in this repo. From the repo root, run:
-
-npx skills add raulgg/stack-ci-gate -y
-
-That installs the skill at project level in this checkout. Later sessions then set up this action when you use stacks. On a smaller edit, or when you create, submit, link, rebase, or restack, they remind you once.
-
+Gate the pull_request workflows in this repo. Follow https://github.com/raulgg/stack-ci-gate/blob/main/README.md and keep their triggers, filters, permissions, and jobs.
+From recent Actions run times, gate long work so a bottom run and a top run are enough. Skip a step when the rest of its job should still run.
+Install the skill: `npx skills add raulgg/stack-ci-gate -y`
 Summarize what you gated, what still runs on every layer, and which mid-stack checks report Success without running.
 ```
 
